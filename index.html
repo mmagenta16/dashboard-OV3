@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ovejitas 3 — Control de Obra & Cashflow</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#F1F5F9;font-family:'Segoe UI',system-ui,sans-serif;color:#0F172A;font-size:14px}
+.hdr{background:linear-gradient(135deg,#0F172A,#1E293B);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);flex-wrap:wrap;gap:6px}
+.logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3B82F6,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff}
+.nav{display:flex;gap:2px;background:rgba(255,255,255,.04);border-radius:10px;padding:3px}
+.nav button{background:transparent;border:none;color:#64748B;padding:6px 13px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s}
+.nav button.act{background:rgba(59,130,246,.15);color:#93C5FD}
+.nav button:hover{color:#93C5FD}
+.tc-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 12px;cursor:pointer;color:#fff}
+.tc-val{font-size:16px;font-weight:800;color:#E0F2FE}
+.tc-pop{position:absolute;top:100%;right:0;margin-top:6px;background:#1E293B;border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.4);z-index:200;width:200px;display:none}
+.tc-pop.show{display:block}
+.tc-pop input{width:100%;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F0F9FF;padding:10px;font-size:18px;font-weight:700;text-align:center;outline:none;box-sizing:border-box}
+.tc-pop .btns{display:flex;gap:6px;margin-top:8px}
+.tc-pop .apply{flex:1;background:#3B82F6;border:none;color:#fff;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer}
+.tc-pop .presets{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.tc-pop .presets button{background:#0F172A;border:1px solid #334155;color:#94A3B8;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;font-weight:600}
+.tc-pop .presets button.sel{background:#3B82F6;color:#fff}
+.wrap{padding:18px 22px;max-width:1440px;margin:0 auto}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.03);padding:18px 20px;flex:1 1 0;min-width:165px}
+.card.sm{padding:14px 16px;min-width:140px}
+.card.chart{min-width:420px;flex:1 1 420px}
+.card.wide{min-width:100%;flex:1 1 100%}
+.kpi-label{font-size:10px;font-weight:700;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.kpi-val{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kpi-val.sm{font-size:18px}
+.kpi-sub{font-size:11px;color:#64748B;margin-top:6px;font-weight:500}
+.section-title{font-size:12px;font-weight:700;color:#334155;margin-bottom:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead th{padding:10px 12px;text-align:right;font-weight:700;color:#94A3B8;font-size:9px;text-transform:uppercase;border-bottom:2px solid #F1F5F9}
+.tbl thead th:nth-child(1),.tbl thead th:nth-child(2){text-align:left}
+.tbl tbody tr{border-bottom:1px solid #F8FAFC;cursor:pointer;transition:background .1s}
+.tbl tbody tr:hover{background:#FAFBFC}
+.tbl td{padding:9px 12px}
+.mono{font-family:monospace;font-size:11px}
+.badge{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:800;display:inline-block}
+.bar-row{display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer}
+.bar-name{width:100px;font-size:10px;color:#475569;font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:10px;background:#F1F5F9;border-radius:5px;position:relative;overflow:hidden}
+.bar-fill{position:absolute;height:100%;border-radius:5px;opacity:.75}
+.bar-center{position:absolute;left:50%;top:0;bottom:0;width:1px;background:#CBD5E1}
+.bar-pct{width:50px;font-size:10px;font-weight:700;text-align:right}
+.alert{border-radius:14px;padding:14px 18px;cursor:pointer;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.alert-tag{font-size:9px;font-weight:800;letter-spacing:.1em}
+.alert-name{font-size:14px;font-weight:800;margin-top:3px}
+.alert-sub{font-size:11px;color:#64748B;margin-top:2px}
+.alert-pct{font-weight:900}
+.gantt-card{background:#fff;border-radius:12px;padding:11px 14px;flex:1 1 180px;min-width:170px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.03);cursor:pointer;border-left:3px solid}
+.gantt-card .name{font-size:11px;font-weight:700;margin-bottom:2px}
+.gantt-card .dates{font-size:9px;color:#64748B}
+.gantt-card .dev{font-size:10px;font-weight:800;margin-top:2px}
+.rank-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.rank-name{width:100px;font-size:10.5px;font-weight:500;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-bar{flex:1;height:8px;background:#F1F5F9;border-radius:4px;overflow:hidden}
+.rank-fill{height:100%;border-radius:4px}
+.rank-val{width:65px;font-size:10px;font-weight:700;text-align:right}
+.tag-ok{background:#ECFDF5;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:600;color:#166534;cursor:pointer;display:inline-block;margin:0 3px 4px 0}
+.hidden{display:none}
+.footer{text-align:center;padding:20px 0 28px;font-size:9px;color:#CBD5E1}
+canvas{max-height:260px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo">OV3</div>
+    <div><div style="font-size:13px;font-weight:800">OVEJITAS 3</div><div style="font-size:8px;color:#64748B;font-weight:600;letter-spacing:.1em">CONTROL DE OBRA · CASHFLOW</div></div>
+  </div>
+  <div class="nav" id="nav"></div>
+  <div style="display:flex;align-items:center;gap:10px;position:relative">
+    <button class="tc-btn" onclick="toggleTC()"><span style="font-size:9px;color:#94A3B8;font-weight:600">TC</span><span class="tc-val" id="tcDisplay">1,430</span></button>
+    <div class="tc-pop" id="tcPop">
+      <div style="font-size:10px;color:#94A3B8;font-weight:600;margin-bottom:8px">Tipo de Cambio ARS/USD</div>
+      <input type="number" id="tcInput" value="1430" onkeydown="if(event.key==='Enter')applyTC()">
+      <div class="btns"><button class="apply" onclick="applyTC()">Aplicar</button></div>
+      <div class="presets" id="presets"></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="content"></div>
+<div class="footer" id="footer"></div>
+
+<script>
+// === DATA (ALL IN ARS) ===
+const D={mp:[13730551,6442987,4629865,14621320,40952795,124275097,187802915,186501645,209167766,208628416,176674687,170087733,77463257,133105366,149313585,231929250,264520919,233244153,175638312,199852019,204004763,265445703,163818462,114202640,129527159,96652199,78467105,96127754,107296599,28289357],mr:[20688566,8205107,15206000,43619193,6074122,55217929,308283847,181795453,167069433,172184283,113290151,65507477],cp:[13730551,20173538,24803403,39424723,80377518,204652615,392455530,578957175,788124941,996753358,1173428045,1343515778,1420979034,1554084400,1703397985,1935327235,2199848153,2433092307,2608730619,2808582638,3012587401,3278033105,3441851566,3556054207,3685581365,3782233564,3860700669,3956828424,4064125022,4092414379],cr:[20688566,28893674,44099674,87718867,93792989,149010918,457294765,639090218,806159651,978343934,1091634085,1157141562],ml:["Feb25","Mar25","Abr25","May25","Jun25","Jul25","Ago25","Sep25","Oct25","Nov25","Dic25","Ene26","Feb26","Mar26","Abr26","May26","Jun26","Jul26","Ago26","Sep26","Oct26","Nov26","Dic26","Ene27","Feb27","Mar27","Abr27","May27","Jun27","Jul27"],tb:4092414379,ing:[23144466,36314715,46813688,47188337,47856472,48767788,223269699,78429818,71834049,162313424,95820537,67497953,99454909,69893870],egr:[20560829,26758546,28437468,58467504,19738124,79006429,368741696,244911323,210602002,231824183,178545693,103642749,104954193,195314416],ct:{t:2331415690,v:22559017,nv:1464478659},
+rb:[{id:1,n:"Trab. Prelim.",b:58087677,r:54169978,dp:-6.7,mp:[4038170,2594225,0,583062,347773,11810574,3768305,2277015,1867362,1652342,2000115,1519589,1519589,1519589,1652342,1652342,1519589,1519589,2277015,2277015,1519589,1211403,1211403,1145027,1145027,1111838,1111838,1078650,1078650,1078650],mr:[6125066,0,1155000,295193,35988,1919272,2746247,4734531,255907,895269,252398,296404]},{id:2,n:"Demolición",b:105000000,r:217718557,dp:107.4,mp:[9532821,3689202,3689202,12869308,30894820,31861999,10565210,967179,930259,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],mr:[14563500,8205107,13951000,43324000,6001234,3835062,18979375,0,0,0,0,0]},{id:3,n:"Mov. Suelos",b:53837884,r:115245372,dp:114.1,mp:[0,0,0,0,6265403,16321507,17888797,3995977,1581241,1895578,1810319,0,0,0,0,0,3884820,194241,0,0,0,0,0,0,0,0,0,0,0,0],mr:[0,0,0,0,0,88645,38253408,251521,493895,73170,17941640,0]},{id:4,n:"Infraestructura",b:85005769,r:75080221,dp:-11.7,mp:[0,0,0,0,0,7161163,5869490,12438485,11931556,2037795,0,5566988,2645175,2462187,209311,0,2684728,5472717,620920,4550671,6098935,1593735,1075871,297460,777727,387409,1748720,975986,8398740,0],mr:[0,0,0,0,0,271037,1258098,0,0,0,0,0]},{id:5,n:"Estructura",b:934853712,r:1729518670,dp:85,mp:[0,0,0,0,0,47677539,138638806,153689950,173789305,158270733,113491241,67496438,22903916,11218245,2056678,5515637,3178503,5702608,11685671,5889578,373941,280456,0,2430620,2991532,2898047,1589251,1963193,1121824,0],mr:[0,0,0,0,0,17591774,242327148,172474859,106452658,134026413,53469596,41743904]},{id:6,n:"Albañilería",b:706887623,r:763087637,dp:8,mp:[0,0,0,0,0,571728,571728,285864,0,12261917,19589957,21012496,25612682,32700853,48136422,66179362,54374841,37660898,73766660,67194727,70985142,58999674,43101377,26764157,26057580,13410090,4650414,1464498,1534555,0],mr:[0,0,0,0,0,20568044,0,1814469,9207968,13779028,30332148,12064492]},{id:7,n:"Sanitaria",b:139424661,r:110232746,dp:-20.9,mp:[0,0,0,0,0,0,0,0,9910554,2971925,13277092,14843775,4979985,26029742,8630614,13639166,4620397,10139963,3071506,7947340,1618191,2860308,2251841,1348392,3076314,1379940,652277,1786425,2137104,2251811],mr:[0,0,0,0,0,0,0,0,4416476,8373927,2674085,0]},{id:8,n:"Eléctrica",b:113914700,r:117030265,dp:2.7,mp:[0,0,0,0,0,0,2755057,1423638,1378123,14085681,2135458,2161234,3830019,14303607,2588110,396241,2404792,5442836,1539673,19297758,4763104,12184823,1945181,6559961,3393217,1077620,2622380,2816306,4042694,767186],mr:[0,0,0,0,0,0,0,0,0,0,0,6571094]},{id:9,n:"Termomecánica",b:53510457,r:63045914,dp:17.8,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,11552675,2949459,2669227,0,16506540,4490109,3958430,10770259,0,39140,0,0,0,0,0,410440,164176],mr:[0,0,0,0,0,0,0,0,0,0,0,0]},{id:10,n:"Zinquerías",b:63700000,r:53086031,dp:-16.7,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5251931,1411651,4929203,4278950,3595664,26949828,6401927,2442369,1673685,973161,1547645,3511277,732711,0,0],mr:[0,0,0,0,0,0,0,0,4650665,181824,0,0]},{id:11,n:"Carp. Madera",b:174147846,r:143127260,dp:-17.8,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,88005633,0,3728212,11740829,9398136,14893247,17555906,23975105,4850778],mr:[0,0,0,0,0,0,0,0,0,0,0,0]},{id:12,n:"Carp. Metálica",b:88600912,r:77919078,dp:-12.1,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,279023,8568587,23207214,7402399,5823210,5686615,5854389,4491047,6837122,6404658,5612511,2011894,2064641,3252228,1105376],mr:[0,0,0,0,0,0,0,0,0,0,0,0]},{id:13,n:"Techos/Revest.",b:200068635,r:198659979,dp:-0.7,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,48855607,6632935,53990554,4679539,19707485,31437363,2643018,25514589,4625282,925056,1057207,0,0,0,0,0],mr:[0,0,0,0,0,430092,0,0,9364412,11892296,6863485,0]},{id:14,n:"Carp. Aluminio",b:159507332,r:159507332,dp:0,mp:[0,0,0,0,0,0,0,0,0,0,0,6244628,6244628,0,0,0,81462715,0,0,0,15333985,11761446,10379476,12408326,15672127,0,0,0,0,0],mr:[0,0,0,0,0,0,0,0,0,0,0,0]},{id:15,n:"Pintura",b:138707807,r:90260700,dp:-34.9,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,26505667,21488391,21260496,22548630,19014397,16546265,8038180,3305780],mr:[0,0,0,0,0,4658508,0,0,0,0,0,0]},{id:16,n:"Piletas",b:24382897,r:148218274,dp:507.9,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3164294,3320506,4260104,5589059,3776606,3547572,724756],mr:[0,0,0,0,0,0,0,0,0,0,0,0]},{id:17,n:"Parquización",b:33569711,r:9956919,dp:-70.3,mp:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8807366,2200765,11854910,8725279,1981391],mr:[0,0,0,0,0,0,0,0,0,0,0,0]},{id:18,n:"Compras Dir.",b:354195739,r:349628304,dp:-1.3,mp:[0,0,0,0,0,0,0,0,0,0,0,24553418,0,0,0,102314664,0,86529430,0,13426108,25891406,5021952,41103763,0,18428250,10230208,6850627,16450044,3395869,0],mr:[0,0,0,0,0,0,135651,0,0,2508350,0,0]},{id:19,n:"Seguridad",b:6095460,r:8069596,dp:32.4,mp:[159560,159560,159560,159560,169021,392089,368259,159560,224517,159560,236344,239340,159560,159560,167384,159560,159560,239340,183487,164837,183032,159560,159560,260029,159560,222744,250937,159560,308919,251342],mr:[0,0,0,0,0,0,48278,47581,46042,45002,44122,43555]},{id:20,n:"Varios",b:216637457,r:191887309,dp:-11.4,mp:[0,0,394801,491352,553291,7447707,7377264,7486853,7230048,8083324,8060193,8353436,9567703,9067511,8751961,8423196,8532784,9046394,8543891,8720330,8610674,9650769,9760357,9807187,9350000,9523860,8749045,9024528,9294315,6734683],mr:[0,0,0,0,0,5855496,3189052,1492008,-202983,-717153,1712676,4517409]},{id:21,n:"Mat. Corralón",b:382278100,r:418479969,dp:9.5,mp:[0,0,386302,518038,2722486,1030790,0,3777125,324801,7209560,16073969,18096390,0,24091396,25315697,18815966,37727397,21973641,38070547,25568987,22577044,35945039,14726127,15364721,3718969,4236053,3020978,7877526,28035125,5073428],mr:[0,0,0,0,0,0,1346590,980484,32384393,1126159,0,270619]}],
+cl:[{n:"Lineaverde",t:281805989},{n:"Poccard",t:206199861},{n:"Palombella",t:186991203},{n:"Bermolen",t:170953900},{n:"Martinez C.",t:124865942},{n:"Fernandez L.",t:107443235},{n:"Anaya",t:105355225}],
+pv:[{n:"Hydracromos",t:733828272},{n:"Nuestra Casa",t:212684969},{n:"Nueva Casa",t:206811705},{n:"Mun. S.Isidro",t:154493579},{n:"D. Segovia",t:132530265},{n:"CMB Constr.",t:112615003},{n:"Mad. Newton",t:99730585},{n:"HMO Constr.",t:74206000},{n:"Andersen",t:58582151}]};
+
+const CM=11;
+let tc=1430, view='dash', charts=[];
+const u=v=>v/tc;
+const F=v=>{const a=Math.abs(v);return a>=1e6?(v/1e6).toFixed(1)+'M':a>=1e3?(v/1e3).toFixed(0)+'K':Math.round(v)+''};
+const P=v=>(v>0?'+':'')+v.toFixed(1)+'%';
+const ST=d=>d>15?{c:'#DC2626',bg:'#FEF2F2',l:'CRÍTICO'}:d>5?{c:'#D97706',bg:'#FFFBEB',l:'ALERTA'}:d<-20?{c:'#2563EB',bg:'#EFF6FF',l:'SUB-EJEC'}:{c:'#059669',bg:'#ECFDF5',l:'EN RANGO'};
+
+function toggleTC(){document.getElementById('tcPop').classList.toggle('show')}
+function applyTC(){const n=parseFloat(document.getElementById('tcInput').value);if(n>0){tc=n;document.getElementById('tcPop').classList.remove('show');render()}}
+function setView(v){view=v;render()}
+function kpi(l,v,sub,color){return `<div class="card"><div class="kpi-label">${l}</div><div class="kpi-val" style="color:${color||'#0F172A'}">${v}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`}
+function kpiSm(l,v,sub,color){return `<div class="card sm"><div class="kpi-label">${l}</div><div class="kpi-val sm" style="color:${color||'#0F172A'}">${v}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`}
+
+function destroyCharts(){charts.forEach(c=>c.destroy());charts=[]}
+
+function makeChart(id,type,labels,datasets,opts){
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  const c=new Chart(ctx,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:datasets.length>1,labels:{font:{size:10}}},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{font:{size:8},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>v+'K'},grid:{color:'#F1F5F9'}}},...opts}});
+  charts.push(c);
+}
+
+function render(){
+  destroyCharts();
+  const bg=u(D.tb),rl=u(D.cr[D.cr.length-1]),pl=u(D.cp[CM]);
+  const dv=rl-pl,dvP=(dv/pl)*100,cpi=pl/rl,ex=(rl/bg)*100;
+  const c30=u(D.mp[CM+1]||0),c60=c30+u(D.mp[CM+2]||0),c90=c60+u(D.mp[CM+3]||0);
+  const cr=D.rb.filter(r=>Math.abs(r.dp)>15).length;
+  const tI=u(D.ing.reduce((a,b)=>a+b,0)),tE=u(D.egr.reduce((a,b)=>a+b,0));
+  
+  // Nav
+  const navEl=document.getElementById('nav');
+  navEl.innerHTML=[['dash','Dashboard'],['rub','Rubros'],['cf','Cashflow'],['ing','Ingresos'],['gnt','Cronograma'],['alt','Alertas']].map(([k,l])=>`<button class="${view===k?'act':''}" onclick="setView('${k}')">${l}</button>`).join('');
+  
+  document.getElementById('tcDisplay').textContent=tc.toLocaleString();
+  document.getElementById('footer').textContent='OVEJITAS 3 · ENE 2026 · TC '+tc.toLocaleString()+' · v2';
+  
+  // Presets
+  document.getElementById('presets').innerHTML=[1150,1200,1300,1430,1500].map(t=>`<button class="${tc===t?'sel':''}" onclick="document.getElementById('tcInput').value=${t}">${t}</button>`).join('');
+  
+  const el=document.getElementById('content');
+  let h='';
+
+  if(view==='dash'){
+    h+=`<div class="row">${kpi('Presupuesto','USD '+F(bg),'30 meses')}${kpi('Ejecutado','USD '+F(rl),ex.toFixed(1)+'%','#2563EB')}${kpi('Plan a Fecha','USD '+F(pl))}${kpi('Desvío','USD '+F(Math.abs(dv)),P(dvP),dv>0?'#DC2626':'#059669')}${kpi('CPI',cpi.toFixed(2),cpi>=1?'Eficiente':'Sobrecosto',cpi>=1?'#059669':'#DC2626')}${kpi('Críticos',cr+'/21','Desvío >15%',cr>5?'#DC2626':'#D97706')}</div>`;
+    h+=`<div class="row"><div class="card"><div class="kpi-label">Necesidad de Caja</div><div style="display:flex;gap:18px"><div><div style="font-size:17px;font-weight:800;color:#1D4ED8">USD ${F(c30)}</div><div style="font-size:10px;color:#94A3B8">30d</div></div><div><div style="font-size:17px;font-weight:800;color:#1D4ED8">USD ${F(c60)}</div><div style="font-size:10px;color:#94A3B8">60d</div></div><div><div style="font-size:17px;font-weight:800;color:#1D4ED8">USD ${F(c90)}</div><div style="font-size:10px;color:#94A3B8">90d</div></div></div></div>`;
+    h+=`<div class="card"><div class="kpi-label">Flujo Neto</div><div style="display:flex;gap:18px"><div><div style="font-size:17px;font-weight:800;color:#059669">USD ${F(tI)}</div><div style="font-size:10px;color:#94A3B8">Cobrado</div></div><div><div style="font-size:17px;font-weight:800;color:#DC2626">USD ${F(tE)}</div><div style="font-size:10px;color:#94A3B8">Pagado</div></div><div><div style="font-size:17px;font-weight:800;color:${tI>=tE?'#059669':'#DC2626'}">USD ${F(tI-tE)}</div><div style="font-size:10px;color:#94A3B8">Neto</div></div></div></div></div>`;
+    h+=`<div class="row"><div class="card chart"><div class="section-title">Curva S (USD K)</div><div style="height:230px"><canvas id="ch1"></canvas></div></div><div class="card chart"><div class="section-title">Cashflow Mensual (USD K)</div><div style="height:230px"><canvas id="ch2"></canvas></div></div></div>`;
+    h+=`<div class="row"><div class="card wide"><div class="section-title">Desvío por Rubro</div>`;
+    [...D.rb].sort((a,b)=>Math.abs(b.dp)-Math.abs(a.dp)).forEach(r=>{const s=ST(r.dp);const w=Math.min(Math.abs(r.dp)/1.2,100);
+      h+=`<div class="bar-row" onclick="view='rub';render();setTimeout(()=>showDetail(${r.id}),50)"><div class="bar-name">${r.n}</div><div class="bar-track"><div class="bar-fill" style="background:${s.c};${r.dp>0?'left':'right'}:50%;width:${w/2}%"></div><div class="bar-center"></div></div><div class="bar-pct" style="color:${s.c}">${P(r.dp)}</div></div>`;
+    });
+    h+=`</div></div>`;
+    el.innerHTML=h;
+    setTimeout(()=>{
+      makeChart('ch1','line',D.ml,[{label:'Plan',data:D.cp.map((v,i)=>Math.round(u(v)/1e3)),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3},{label:'Real',data:D.cr.map(v=>Math.round(u(v)/1e3)).concat(Array(18).fill(null)),borderColor:'#059669',borderWidth:2.5,pointRadius:2,tension:.3}]);
+      makeChart('ch2','bar',D.ml.slice(0,12),[{label:'Plan',data:D.mp.slice(0,12).map(v=>Math.round(u(v)/1e3)),backgroundColor:'#DBEAFE'},{label:'Real',data:D.mr.map(v=>Math.round(u(v)/1e3)),backgroundColor:'#A7F3D0'}]);
+    },50);
+  }
+
+  else if(view==='rub'){
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><span style="font-size:16px;font-weight:800">Rubros</span><span style="font-size:11px;color:#94A3B8;margin-left:8px">USD TC ${tc.toLocaleString()}</span></div></div>`;
+    h+=`<div class="card" style="overflow:hidden;padding:0"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>#</th><th>Rubro</th><th>Presup.</th><th>Ejecutado</th><th>Desvío</th><th>%</th><th>Estado</th></tr></thead><tbody>`;
+    [...D.rb].sort((a,b)=>b.dp-a.dp).forEach(r=>{const s=ST(r.dp);
+      h+=`<tr onclick="showDetail(${r.id})"><td style="color:#CBD5E1;font-weight:700;font-size:11px">${r.id}</td><td style="font-weight:600">${r.n}</td><td class="mono" style="text-align:right">${F(u(r.b))}</td><td class="mono" style="text-align:right">${F(u(r.r))}</td><td class="mono" style="text-align:right;font-weight:700;color:${r.r>r.b?'#DC2626':'#059669'}">${F(u(r.r-r.b))}</td><td style="text-align:right;font-weight:800;color:${s.c};font-size:11px">${P(r.dp)}</td><td style="text-align:right"><span class="badge" style="background:${s.bg};color:${s.c}">${s.l}</span></td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+    el.innerHTML=h;
+  }
+
+  else if(view==='cf'){
+    h+=`<div style="margin-bottom:12px"><span style="font-size:16px;font-weight:800">Cashflow</span></div>`;
+    h+=`<div class="row">${kpiSm('30d','USD '+F(c30),'','#1D4ED8')}${kpiSm('60d','USD '+F(c60),'','#1D4ED8')}${kpiSm('90d','USD '+F(c90),'','#1D4ED8')}${kpiSm('Restante','USD '+F(bg-rl))}</div>`;
+    h+=`<div class="card" style="margin-bottom:12px"><div class="section-title">Plan vs Real (USD K)</div><div style="height:260px"><canvas id="ch3"></canvas></div></div>`;
+    h+=`<div class="card"><div class="section-title">Acumulado (USD K)</div><div style="height:260px"><canvas id="ch4"></canvas></div></div>`;
+    el.innerHTML=h;
+    setTimeout(()=>{
+      makeChart('ch3','bar',D.ml.slice(0,12),[{label:'Plan',data:D.mp.slice(0,12).map(v=>Math.round(u(v)/1e3)),backgroundColor:'#DBEAFE'},{label:'Real',data:D.mr.map(v=>Math.round(u(v)/1e3)),backgroundColor:'#A7F3D0'}]);
+      makeChart('ch4','line',D.ml,[{label:'Plan',data:D.cp.map(v=>Math.round(u(v)/1e3)),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3},{label:'Real',data:D.cr.map(v=>Math.round(u(v)/1e3)).concat(Array(18).fill(null)),borderColor:'#059669',borderWidth:2.5,pointRadius:2,tension:.3}]);
+    },50);
+  }
+
+  else if(view==='ing'){
+    h+=`<div style="margin-bottom:12px"><span style="font-size:16px;font-weight:800">Ingresos</span></div>`;
+    h+=`<div class="row">${kpi('Cobrado','USD '+F(tI),'','#059669')}${kpi('Pagado','USD '+F(tE),'','#DC2626')}${kpi('Neto','USD '+F(tI-tE),'',tI>=tE?'#059669':'#DC2626')}${kpi('Contratos','USD '+F(u(D.ct.t)),'Pend: '+F(u(D.ct.nv)))}</div>`;
+    h+=`<div class="card" style="margin-bottom:12px"><div class="section-title">Ingresos vs Egresos (USD K)</div><div style="height:260px"><canvas id="ch5"></canvas></div></div>`;
+    h+=`<div class="row"><div class="card chart"><div class="section-title">Compradores</div>`;
+    D.cl.forEach(c=>{h+=`<div class="rank-row"><div class="rank-name">${c.n}</div><div class="rank-bar"><div class="rank-fill" style="width:${(c.t/D.cl[0].t*100)}%;background:linear-gradient(90deg,#6EE7B7,#34D399)"></div></div><div class="rank-val">USD ${F(u(c.t))}</div></div>`});
+    h+=`</div><div class="card chart"><div class="section-title">Proveedores</div>`;
+    D.pv.forEach(p=>{h+=`<div class="rank-row"><div class="rank-name">${p.n}</div><div class="rank-bar"><div class="rank-fill" style="width:${(p.t/D.pv[0].t*100)}%;background:linear-gradient(90deg,#FCA5A5,#F87171)"></div></div><div class="rank-val">USD ${F(u(p.t))}</div></div>`});
+    h+=`</div></div>`;
+    el.innerHTML=h;
+    setTimeout(()=>{
+      const lbs=D.ml.slice(0,14);
+      makeChart('ch5','bar',lbs,[{label:'Ingresos',data:D.ing.map(v=>Math.round(u(v)/1e3)),backgroundColor:'#6EE7B7'},{label:'Egresos',data:D.egr.map(v=>Math.round(u(v)/1e3)),backgroundColor:'#FCA5A5'}]);
+    },50);
+  }
+
+  else if(view==='gnt'){
+    h+=`<div style="margin-bottom:12px"><span style="font-size:16px;font-weight:800">Cronograma</span></div><div class="row">`;
+    D.rb.forEach(r=>{const s=ST(r.dp);const ps=r.mp.findIndex(v=>v>0),pe=r.mp.length-1-r.mp.slice().reverse().findIndex(v=>v>0);const rs=r.mr.findIndex(v=>v>0);if(ps<0)return;
+      h+=`<div class="gantt-card" style="border-color:${s.c}" onclick="view='rub';render();setTimeout(()=>showDetail(${r.id}),50)"><div class="name">${r.n}</div><div class="dates">Plan: ${D.ml[ps]} → ${D.ml[pe]}</div>${rs>=0?`<div class="dates" style="color:${s.c};font-weight:600">Real: ${D.ml[rs]} → ${D.ml[Math.min(r.mr.length-1-r.mr.slice().reverse().findIndex(v=>v>0),11)]}</div>`:''}<div class="dev" style="color:${s.c}">${P(r.dp)} · USD ${F(u(Math.abs(r.r-r.b)))}</div></div>`;
+    });
+    h+=`</div>`;el.innerHTML=h;
+  }
+
+  else if(view==='alt'){
+    h+=`<div style="margin-bottom:12px"><span style="font-size:16px;font-weight:800">Alertas</span></div>`;
+    D.rb.filter(r=>r.dp>50).forEach(r=>{h+=`<div class="alert" style="background:#FEF2F2;border-left:4px solid #DC2626" onclick="view='rub';render();setTimeout(()=>showDetail(${r.id}),50)"><div><div class="alert-tag" style="color:#DC2626">CRÍTICO</div><div class="alert-name">${r.n}</div><div class="alert-sub">USD ${F(u(r.b))} → USD ${F(u(r.r))}</div></div><div class="alert-pct" style="font-size:28px;color:#DC2626">${P(r.dp)}</div></div>`});
+    D.rb.filter(r=>r.dp>15&&r.dp<=50).forEach(r=>{h+=`<div class="alert" style="background:#FFFBEB;border-left:4px solid #D97706" onclick="view='rub';render();setTimeout(()=>showDetail(${r.id}),50)"><div><div class="alert-tag" style="color:#D97706">ALERTA</div><div class="alert-name">${r.n}</div></div><div class="alert-pct" style="font-size:22px;color:#D97706">${P(r.dp)}</div></div>`});
+    D.rb.filter(r=>r.dp<-20).forEach(r=>{h+=`<div class="alert" style="background:#EFF6FF;border-left:4px solid #2563EB" onclick="view='rub';render();setTimeout(()=>showDetail(${r.id}),50)"><div><div class="alert-tag" style="color:#2563EB">SUB-EJECUCIÓN</div><div class="alert-name">${r.n}</div></div><div class="alert-pct" style="font-size:22px;color:#2563EB">${P(r.dp)}</div></div>`});
+    h+=`<div style="margin-top:6px"><div style="font-size:12px;font-weight:800;color:#059669;margin-bottom:6px">✓ En rango (${D.rb.filter(r=>Math.abs(r.dp)<=15).length})</div><div>`;
+    D.rb.filter(r=>Math.abs(r.dp)<=15).forEach(r=>{h+=`<span class="tag-ok" onclick="view='rub';render();setTimeout(()=>showDetail(${r.id}),50)">${r.n} <span style="color:#059669">${P(r.dp)}</span></span>`});
+    h+=`</div></div>`;el.innerHTML=h;
+  }
+
+  else if(view==='detail'){
+    const r=D.rb.find(x=>x.id===window._selId);if(!r){view='rub';render();return;}
+    const s=ST(r.dp);
+    h+=`<button onclick="view='rub';render()" style="background:none;border:none;color:#3B82F6;font-size:12px;font-weight:600;cursor:pointer;padding:0;margin-bottom:8px">← Rubros</button>`;
+    h+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><h2 style="font-size:18px;font-weight:800;margin:0">${r.n}</h2><span class="badge" style="background:${s.bg};color:${s.c};font-size:10px;padding:4px 12px">${s.l}</span></div>`;
+    h+=`<div class="row">${kpiSm('Presupuesto','USD '+F(u(r.b)))}${kpiSm('Ejecutado','USD '+F(u(r.r)),'','#2563EB')}${kpiSm('Desvío',P(r.dp),'',''+s.c)}</div>`;
+    h+=`<div class="row"><div class="card chart"><div class="section-title">Mensual (USD K)</div><div style="height:230px"><canvas id="ch6"></canvas></div></div><div class="card chart"><div class="section-title">Curva S (USD K)</div><div style="height:230px"><canvas id="ch7"></canvas></div></div></div>`;
+    el.innerHTML=h;
+    setTimeout(()=>{
+      makeChart('ch6','bar',D.ml.slice(0,12),[{label:'Plan',data:r.mp.slice(0,12).map(v=>Math.round(u(v)/1e3)),backgroundColor:'#DBEAFE'},{label:'Real',data:r.mr.map(v=>Math.round(u(v)/1e3)),backgroundColor:'#A7F3D0'}]);
+      let cp=0,cr2=0;const cumP=[],cumR=[];
+      D.ml.forEach((m,i)=>{cp+=r.mp[i];cumP.push(Math.round(u(cp)/1e3));if(i<r.mr.length){cr2+=r.mr[i];cumR.push(Math.round(u(cr2)/1e3))}else{cumR.push(null)}});
+      makeChart('ch7','line',D.ml,[{label:'Plan',data:cumP,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3},{label:'Real',data:cumR,borderColor:'#059669',borderWidth:2.5,pointRadius:2,tension:.3}]);
+    },50);
+  }
+}
+
+function showDetail(id){window._selId=id;view='detail';render()}
+
+// Init
+document.getElementById('tcDisplay').textContent=tc.toLocaleString();
+render();
+</script>
+</body>
+</html>
